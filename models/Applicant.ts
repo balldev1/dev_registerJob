@@ -26,6 +26,7 @@ const ApplicantSchema = new Schema(
       required: true,
       lowercase: true,
       trim: true,
+      index: true,
     },
     phone: {
       type: String,
@@ -36,13 +37,14 @@ const ApplicantSchema = new Schema(
       trim: true,
     },
 
-    /* ===== เอกสาร ===== */
+    /* ===== เอกสาร (Local file path) ===== */
     resumeUrl: {
-      type: String, // link ไฟล์ resume (S3, Cloudinary ฯลฯ)
+      type: String,
+      required: true,
     },
 
     portfolioFileUrl: {
-      type: String, // ถ้าเปิด upload portfolio
+      type: String,
     },
 
     /* ===== สถานะการสมัคร ===== */
@@ -56,5 +58,7 @@ const ApplicantSchema = new Schema(
     timestamps: true,
   },
 );
+
+ApplicantSchema.index({ job: 1, email: 1 }, { unique: true });
 
 export default models.Applicant || mongoose.model("Applicant", ApplicantSchema);

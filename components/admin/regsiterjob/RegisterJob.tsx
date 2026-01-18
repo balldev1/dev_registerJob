@@ -25,8 +25,8 @@ export function RegisterJob() {
     email: "",
     phone: "",
     address: "",
-    resumeUrl: "",
-    portfolioFileUrl: "",
+    resume: null as File | null,
+    portfolio: null as File | null,
   });
 
   const [message, setMessage] = useState<string | null>(null);
@@ -80,9 +80,28 @@ export function RegisterJob() {
   }
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    if (!files || !files[0]) return;
+
+    // จำกัดขนาดไฟล์ 5MB (แนะนำ)
+    if (files[0].size > 5 * 1024 * 1024) {
+      alert("ไฟล์ต้องไม่เกิน 5MB");
+      return;
+    }
+
+    setForm({ ...form, [name]: files[0] });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,19 +112,22 @@ export function RegisterJob() {
       setLoading(true);
       setMessage(null);
 
+      const formData = new FormData();
+      formData.append("firstName", form.firstName);
+      formData.append("lastName", form.lastName);
+      formData.append("email", form.email);
+      if (form.phone) formData.append("phone", form.phone);
+      if (form.address) formData.append("address", form.address);
+      if (form.resume) formData.append("resume", form.resume);
+      if (form.portfolio) formData.append("portfolio", form.portfolio);
+
       const res = await fetch(`/api/applicant/${id}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
+        body: formData,
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "สมัครงานไม่สำเร็จ");
-      }
+      if (!res.ok) throw new Error(data.message);
 
       setMessage("✅ สมัครงานสำเร็จ");
       setForm({
@@ -114,8 +136,8 @@ export function RegisterJob() {
         email: "",
         phone: "",
         address: "",
-        resumeUrl: "",
-        portfolioFileUrl: "",
+        resume: null,
+        portfolio: null,
       });
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);
@@ -174,6 +196,7 @@ export function RegisterJob() {
             className="bg-white rounded shadow p-6 space-y-4">
             <h2 className="text-xl font-semibold">แบบฟอร์มสมัครงาน</h2>
 
+            {/* ===== First name ===== */}
             <input
               name="firstName"
               value={form.firstName}
@@ -183,6 +206,7 @@ export function RegisterJob() {
               required
             />
 
+            {/* ===== Last name ===== */}
             <input
               name="lastName"
               value={form.lastName}
@@ -192,6 +216,7 @@ export function RegisterJob() {
               required
             />
 
+            {/* ===== Email ===== */}
             <input
               name="email"
               type="email"
@@ -202,6 +227,7 @@ export function RegisterJob() {
               required
             />
 
+            {/* ===== Phone ===== */}
             <input
               name="phone"
               value={form.phone}
@@ -210,6 +236,7 @@ export function RegisterJob() {
               placeholder="เบอร์โทรศัพท์"
             />
 
+            {/* ===== Address ===== */}
             <textarea
               name="address"
               rows={3}
@@ -219,14 +246,46 @@ export function RegisterJob() {
               placeholder="ที่อยู่"
             />
 
-            <input
-              name="resumeUrl"
-              value={form.resumeUrl}
-              onChange={handleChange}
-              className="border p-3 rounded w-full"
-              placeholder="ลิงก์ Resume (PDF)"
-            />
+            {/* ===== Resume Upload ===== */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Resume (PDF / PNG)
+              </label>
+              <input
+                type="file"
+                name="resume"
+                accept=".pdf,.png,.jpg"
+                onChange={handleFileChange}
+                className="border p-3 rounded w-full"
+                required
+              />
+              {form.resume && (
+                <p className="text-xs text-gray-500 mt-1">
+                  เลือกไฟล์: {form.resume.name}
+                </p>
+              )}
+            </div>
 
+            {/* ===== Portfolio Upload (optional) ===== */}
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">
+                Portfolio (ถ้ามี)
+              </label>
+              <input
+                type="file"
+                name="portfolio"
+                accept=".pdf,.png,.jpg,.zip"
+                onChange={handleFileChange}
+                className="border p-3 rounded w-full"
+              />
+              {form.portfolio && (
+                <p className="text-xs text-gray-500 mt-1">
+                  เลือกไฟล์: {form.portfolio.name}
+                </p>
+              )}
+            </div>
+
+            {/* ===== Submit ===== */}
             <button
               type="submit"
               disabled={loading}
